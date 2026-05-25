@@ -1,0 +1,20 @@
+{
+  "name": "BoxMate — CF Planner",
+  "short_name": "BoxMate",
+  "description": "Mayhem-style CrossFit training planner with wave loading and skill progressions",
+  "start_url": "/boxmate/",
+  "scope": "/boxmate/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#e91e8c",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "fitness", "sports"]
+}
