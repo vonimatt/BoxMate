@@ -121,7 +121,7 @@ const Generator = {
       : this._waveParams(wave, cycleNumber);
 
     // ── Strength block ──
-    const strengthBlock = this._buildStrengthBlock(profile, dayType, wave, cycleNumber, isDeload, isPeak);
+    const strengthBlock = this._buildStrengthBlock(profile, dayType, wave, cycleNumber, isDeload, isPeak, weekIdx);
 
     // ── Skill block ──
     const skillBlock = this._buildSkillBlock(profile, dayType, weekIdx);
@@ -156,12 +156,24 @@ const Generator = {
     };
   },
 
-  _buildStrengthBlock(profile, dayType, wave, cycleNumber, isDeload, isPeak) {
+  _buildStrengthBlock(profile, dayType, wave, cycleNumber, isDeload, isPeak, weekIdx = 0) {
     const lifts = dayType.strengthFocus;
     if (!lifts || lifts.length === 0) return null;
 
-    // Pick first lift with a 1RM entered, fallback to first lift
-    const liftId = lifts.find(l => profile.strength && profile.strength[l]) || lifts[0];
+    // For Olympic Lifting days: rotate through all lifts week by week
+    // (otherwise 'clean' is always first and snatch/C&J never appear)
+    // For strength days: always use the first lift with a 1RM (consistent programming)
+    const isOlyDay = lifts.some(l => STRENGTH_MOVEMENTS.find(m => m.id === l)?.category === 'oly');
+    let liftId;
+    if (isOlyDay) {
+      // Collect all oly lifts that have a 1RM entered, fallback to all if none
+      const olyLiftsWithRM = lifts.filter(l => profile.strength?.[l] > 0);
+      const pool = olyLiftsWithRM.length > 0 ? olyLiftsWithRM : lifts;
+      liftId = pool[weekIdx % pool.length];
+    } else {
+      // Strength days: pick first lift with 1RM, or first in list
+      liftId = lifts.find(l => profile.strength?.[l] > 0) || lifts[0];
+    }
     const movement = STRENGTH_MOVEMENTS.find(m => m.id === liftId);
     if (!movement) return null;
 

@@ -480,7 +480,7 @@ function renderPlan() {
       </div>
 
       <div class="week-nav">
-        <button class="btn-icon" id="btn-prev-week" ${state.selectedWeek === 0 ? 'disabled' : ''}>← Week ${state.selectedWeek}</button>
+        <button class="btn-icon" id="btn-prev-week" ${state.selectedWeek === 0 ? 'disabled' : ''}>← ${state.selectedWeek > 0 ? 'Week ' + state.selectedWeek : 'Start'}</button>
         <span class="week-label">Week ${state.selectedWeek + 1} — <em>${state.plan.weeks[state.selectedWeek]?.wave || ''}</em></span>
         <button class="btn-icon" id="btn-next-week" ${state.selectedWeek >= state.plan.weeks.length - 1 ? 'disabled' : ''}>Week ${state.selectedWeek + 2} →</button>
       </div>
@@ -868,12 +868,16 @@ function attachEvents() {
     setState({ plan, view: 'plan', selectedWeek: 0, selectedDate: plan.weeks[0]?.days[0]?.date || null, lastParams: params });
   });
 
-  // Week navigation
+  // Week navigation — also update selectedDate to first day of new week
   document.getElementById('btn-prev-week')?.addEventListener('click', () => {
-    setState({ selectedWeek: Math.max(0, state.selectedWeek - 1) });
+    const newWeek = Math.max(0, state.selectedWeek - 1);
+    const firstDay = state.plan.weeks[newWeek]?.days[0]?.date || null;
+    setState({ selectedWeek: newWeek, selectedDate: firstDay });
   });
   document.getElementById('btn-next-week')?.addEventListener('click', () => {
-    setState({ selectedWeek: Math.min(state.plan.weeks.length - 1, state.selectedWeek + 1) });
+    const newWeek = Math.min(state.plan.weeks.length - 1, state.selectedWeek + 1);
+    const firstDay = state.plan.weeks[newWeek]?.days[0]?.date || null;
+    setState({ selectedWeek: newWeek, selectedDate: firstDay });
   });
 
   // Export / Import
