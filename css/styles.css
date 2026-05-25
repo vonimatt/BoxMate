@@ -864,15 +864,73 @@ input:focus, select:focus {
   font-weight: 600;
   border: 1px solid var(--border);
 }
-.metcon-description {
-  font-size: 0.95rem;
-  line-height: 1.75;
-  padding: 0.75rem 1rem;
-  background: var(--bg3);
+/* ─── WOD CARD (MetCon whiteboard display) ─────────────────────────────────── */
+.wod-card {
+  margin-bottom: 0.85rem;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  margin-bottom: 0.85rem;
+  overflow: hidden;
+  background: var(--bg2);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Scheme header — e.g. "3 Rounds", "AMRAP 20", "For Time" */
+.wod-scheme {
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--miami-gradient);
+  color: #fff;
+}
+
+/* Numbered movement list */
+.wod-movements {
+  list-style: none;
+  counter-reset: wod;
+  margin: 0;
+  padding: 0;
+}
+.wod-move {
+  counter-increment: wod;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.93rem;
   font-weight: 500;
+  line-height: 1.45;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.wod-move:last-child { border-bottom: none; }
+.wod-move::before {
+  content: counter(wod);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* Single-movement or prose description — no numbered list */
+.wod-card-single {
+  background: var(--bg3);
+}
+.wod-single-line {
+  padding: 0.75rem 1rem;
+  font-size: 0.93rem;
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0;
 }
 
 /* Coaching cues */
@@ -1190,7 +1248,8 @@ h4 { font-size: 0.9rem; font-weight: 700; }
   .day-detail { border: 1px solid #ddd; box-shadow: none; }
   .dd-header { background: #f5f5f5; }
   .programming-intent, .strength-detail, .skill-detail,
-  .metcon-description, .coaching-row { background: #f9f9f9; }
+  .wod-card, .wod-card-single, .coaching-row { background: #f9f9f9; }
+  .wod-scheme { background: #333 !important; }
 }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────────────────────────── */

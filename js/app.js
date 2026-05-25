@@ -660,7 +660,7 @@ function renderDayDetail(day) {
           <h4>MetCon — ${day.metcon.name}</h4>
           <span class="metcon-badge">${day.metcon.type} · ${day.metcon.duration} min</span>
         </div>
-        <p class="metcon-description">${day.metcon.description}</p>
+        ${renderWodCard(day.metcon.description)}
 
         ${Object.keys(day.personalizedWeights || {}).length ? `
           <div class="personalized-weights">
@@ -1004,6 +1004,49 @@ function formatDate(dateStr) {
 
 function formatShortDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ─── WOD CARD ─────────────────────────────────────────────────────────────────
+// Parses a MetCon description string into { scheme, lines[] }
+// e.g. "3 Rounds: 400m Run + 21 KB Swings + 12 Pull-ups"
+//   → { scheme: "3 Rounds", lines: ["400m Run", "21 KB Swings", "12 Pull-ups"] }
+function parseWod(description) {
+  if (!description) return { scheme: '', lines: [] };
+
+  // Only split on ': ' if it sits within the first 40 chars of the string.
+  // This avoids accidentally splitting on embedded phrases like "Target: sub-1:45".
+  const colonIdx = description.indexOf(': ');
+  if (colonIdx < 0 || colonIdx > 40) {
+    return { scheme: '', lines: [description] };
+  }
+
+  const scheme = description.slice(0, colonIdx).trim();
+  const rest   = description.slice(colonIdx + 2).trim();
+
+  // Detect the separator used between movements (priority: | > → > +)
+  let lines;
+  if (rest.includes(' | '))      lines = rest.split(' | ');
+  else if (rest.includes(' → ')) lines = rest.split(' → ');
+  else if (rest.includes(' + ')) lines = rest.split(' + ');
+  else                           lines = [rest];
+
+  return { scheme, lines: lines.map(l => l.trim()).filter(Boolean) };
+}
+
+// Renders a WOD card: scheme header + numbered movement list
+function renderWodCard(description) {
+  const { scheme, lines } = parseWod(description);
+  const isMulti = lines.length > 1;
+  return `
+    <div class="wod-card${isMulti ? '' : ' wod-card-single'}">
+      ${scheme ? `<div class="wod-scheme">${scheme}</div>` : ''}
+      ${isMulti
+        ? `<ol class="wod-movements">
+            ${lines.map(l => `<li class="wod-move">${l}</li>`).join('')}
+           </ol>`
+        : `<p class="wod-single-line">${lines[0] || ''}</p>`
+      }
+    </div>`;
 }
 
 function showToast(msg, type = 'success') {

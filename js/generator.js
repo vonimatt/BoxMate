@@ -124,7 +124,7 @@ const Generator = {
     const strengthBlock = this._buildStrengthBlock(profile, dayType, wave, cycleNumber, isDeload, isPeak, weekIdx);
 
     // ── Skill block ──
-    const skillBlock = this._buildSkillBlock(profile, dayType, weekIdx);
+    const skillBlock = this._buildSkillBlock(profile, dayType, weekIdx, dayIdx);
 
     // ── MetCon ──
     const metcon = this._pickMetcon(dayType, wave, weekIdx, dayIdx, usedCounts);
@@ -205,7 +205,7 @@ const Generator = {
     };
   },
 
-  _buildSkillBlock(profile, dayType, weekIdx) {
+  _buildSkillBlock(profile, dayType, weekIdx, dayIdx = 0) {
     const skills = Object.entries(SKILL_PROGRESSIONS)
       .filter(([, s]) => dayType.skillCategories.includes(s.category));
 
@@ -214,8 +214,9 @@ const Generator = {
     const targets = this._getSkillTargets(profile, skills);
     if (targets.length === 0) return null;
 
-    // Rotate through targets across weeks
-    const target = targets[weekIdx % targets.length];
+    // Rotate through targets across weeks AND days so different days in the
+    // same week show different skill focuses (e.g. Day1=C2B, Day2=Handstand)
+    const target = targets[(weekIdx * 7 + dayIdx) % targets.length];
     const progression = SKILL_PROGRESSIONS[target.id];
     const currentStep = target.currentStep;
     // Advance 1 step every 3 weeks, capped at last step
@@ -246,10 +247,14 @@ const Generator = {
 
   _getSkillTargets(profile, availableSkills) {
     const targets = [];
-    for (const [id, progression] of availableSkills) {
+
+    // Pass 1 — skills the athlete is ACTIVELY working on (scaling level, not 'not_yet')
+    // 'not_yet' skills that are NOT in goals are skipped — we only program what was chosen
+    for (const [id] of availableSkills) {
       const profileSkill = profile.skills?.[id];
       if (!profileSkill) continue;
-      if (profileSkill.level === 'rx') continue; // ✅ already have it — never program progression
+      if (profileSkill.level === 'rx') continue;      // already mastered
+      if (profileSkill.level !== 'scaling') continue; // 'not_yet' → skip unless it's a goal
 
       const currentStep = profileSkill.step ?? 0;
       targets.push({ id, currentStep });
