@@ -1,4 +1,4 @@
-const CACHE = 'boxmate-v6';
+const CACHE = 'boxmate-v7';
 const ASSETS = [
   './',
   './index.html',

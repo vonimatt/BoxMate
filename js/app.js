@@ -476,6 +476,7 @@ function renderPlan() {
         <h2>Training Plan <span class="plan-meta">${state.plan.weeks.length} weeks · ${state.plan.params.daysPerWeek} days/week</span></h2>
         <div class="plan-export-row">
           <button class="btn btn-outline" id="btn-print">🖨 Print Day</button>
+          <button class="btn btn-outline" id="btn-print-plan">🖨 Print Full Plan</button>
         </div>
       </div>
 
@@ -898,6 +899,7 @@ function attachEvents() {
 
   // Print
   document.getElementById('btn-print')?.addEventListener('click', () => window.print());
+  document.getElementById('btn-print-plan')?.addEventListener('click', () => printFullPlan());
 
   // ── Workout Tracking ──
   document.getElementById('btn-mark-complete')?.addEventListener('click', e => {
@@ -1004,6 +1006,216 @@ function formatDate(dateStr) {
 
 function formatShortDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ─── FULL PLAN PRINT ─────────────────────────────────────────────────────────
+function printFullPlan() {
+  const plan = state.plan;
+  if (!plan) return;
+
+  const WAVE_LABEL = {
+    accumulation:    'Week A — Accumulation (5×5 @ ~72%)',
+    intensification: 'Week B — Intensification (4×4 @ ~82%)',
+    realization:     'Week C — Realization (3×3 @ ~92%)',
+    deload:          'Week D — Deload (3×5 @ ~62%)',
+    peak:            'Peak Week — Test Your 1RMs',
+  };
+
+  const weekRows = plan.weeks.map((week, wi) => {
+    const dayRows = week.days.map(day => {
+      const sb  = day.strengthBlock;
+      const skb = day.skillBlock;
+      const { scheme, lines } = parseWod(day.metcon.description);
+
+      const strengthCell = sb
+        ? `<strong>${sb.movement}</strong><br>${sb.sets}×${sb.reps}${sb.weight ? ` @ <strong>${sb.weight} kg</strong>` : ` @ ${sb.pct}%`}`
+        : `<span class="none">—</span>`;
+
+      const skillCell = skb
+        ? `<strong>${skb.skillName}</strong><br>${skb.drill.label}`
+        : `<span class="none">—</span>`;
+
+      const metconLines = lines.length > 1
+        ? `<ol class="pm-list">${lines.map(l => `<li>${l}</li>`).join('')}</ol>`
+        : `<span>${lines[0] || day.metcon.description}</span>`;
+
+      const metconCell = `
+        <div class="pm-metcon-name">${day.metcon.name}</div>
+        <div class="pm-metcon-type">${day.metcon.type} · ${day.metcon.duration} min</div>
+        ${scheme ? `<div class="pm-scheme">${scheme}</div>` : ''}
+        ${metconLines}`;
+
+      const done = state.tracking[day.date]?.completed;
+      const score = state.tracking[day.date]?.time || '';
+
+      return `
+        <tr>
+          <td class="td-date">${formatShortDate(day.date)}<br><span class="td-dow">${getDOW(day.date)}</span>${done ? '<br><span class="td-done">✓</span>' : ''}</td>
+          <td class="td-type">${day.label}</td>
+          <td class="td-strength">${strengthCell}</td>
+          <td class="td-skill">${skillCell}</td>
+          <td class="td-metcon">${metconCell}${score ? `<div class="td-score">🏁 ${score}</div>` : ''}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+      <div class="week-block">
+        <div class="week-heading">
+          <span class="wh-num">Week ${wi + 1}</span>
+          <span class="wh-wave">${WAVE_LABEL[week.wave] || week.wave}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Session</th>
+              <th>Strength Block</th>
+              <th>Skill Block</th>
+              <th>MetCon</th>
+            </tr>
+          </thead>
+          <tbody>${dayRows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+
+  const startDate = plan.weeks[0]?.days[0]?.date || '';
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BoxMate — Full Training Plan</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+      font-size: 10.5px;
+      color: #0f172a;
+      background: #fff;
+      padding: 18mm 14mm;
+    }
+    /* ── Cover header ── */
+    .cover {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 2px solid #e91e8c;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .cover-title { font-size: 20px; font-weight: 900; letter-spacing: -0.03em; }
+    .cover-title span { color: #e91e8c; }
+    .cover-meta { font-size: 10px; color: #64748b; text-align: right; line-height: 1.6; }
+    /* ── Week block ── */
+    .week-block { margin-bottom: 18px; page-break-inside: avoid; }
+    .week-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      padding: 5px 8px;
+      background: linear-gradient(90deg, #e91e8c 0%, #00d4f5 100%);
+      border-radius: 4px 4px 0 0;
+      color: #fff;
+      margin-bottom: 0;
+    }
+    .wh-num  { font-size: 11px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+    .wh-wave { font-size: 9.5px; opacity: 0.9; }
+    /* ── Table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+    }
+    thead th {
+      background: #f1f5f9;
+      padding: 4px 6px;
+      text-align: left;
+      font-size: 8px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #475569;
+      border-bottom: 1px solid #cbd5e1;
+    }
+    tbody tr { border-bottom: 1px solid #e2e8f0; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td {
+      padding: 5px 6px;
+      vertical-align: top;
+      line-height: 1.45;
+    }
+    /* ── Column widths ── */
+    .td-date    { width: 7%;  white-space: nowrap; }
+    .td-type    { width: 12%; font-weight: 600; }
+    .td-strength{ width: 20%; }
+    .td-skill   { width: 17%; }
+    .td-metcon  { width: 44%; }
+    /* ── Cell details ── */
+    .td-dow   { font-size: 8.5px; color: #94a3b8; }
+    .td-done  { color: #16a34a; font-weight: 700; font-size: 8.5px; }
+    .td-score { color: #16a34a; font-size: 8.5px; margin-top: 2px; font-style: italic; }
+    .none     { color: #cbd5e1; }
+    .pm-metcon-name { font-weight: 700; }
+    .pm-metcon-type { font-size: 8.5px; color: #94a3b8; margin-bottom: 2px; }
+    .pm-scheme {
+      display: inline-block;
+      font-size: 7.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #e91e8c;
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin: 2px 0;
+    }
+    .pm-list {
+      padding-left: 0;
+      list-style: none;
+      margin-top: 2px;
+    }
+    .pm-list li {
+      padding: 1px 0 1px 12px;
+      position: relative;
+      color: #0f172a;
+    }
+    .pm-list li::before {
+      content: counter(li);
+      counter-increment: li;
+      position: absolute;
+      left: 0;
+      font-weight: 700;
+      color: #e91e8c;
+      font-size: 8px;
+    }
+    .pm-list { counter-reset: li; }
+    /* ── Page breaks ── */
+    @media print {
+      body { padding: 10mm; }
+      .week-block { page-break-inside: avoid; }
+      @page { margin: 10mm; size: A4 landscape; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-title">Box<span>Mate</span> — Full Training Plan</div>
+    <div class="cover-meta">
+      ${plan.weeks.length} Weeks · ${plan.params.daysPerWeek} Days/Week · ${plan.params.sessionLength} min sessions<br>
+      Start: ${startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '—'}<br>
+      Printed: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </div>
+  </div>
+  ${weekRows}
+</body>
+</html>`;
+
+  const w = window.open('', '_blank', 'width=1100,height=800');
+  if (!w) { alert('Please allow pop-ups to print the full plan.'); return; }
+  w.document.write(html);
+  w.document.close();
+  // Give the browser a moment to render before triggering print
+  setTimeout(() => { w.focus(); w.print(); }, 400);
 }
 
 // ─── WOD CARD ─────────────────────────────────────────────────────────────────
